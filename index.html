@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titanium ERP | Industrial Suite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* --- 1. INDUSTRIAL THEME & VARS --- */
+        :root {
+            --sidebar-bg: #1e293b; /* Dark Slate */
+            --sidebar-hover: #334155;
+            --primary: #2563eb; /* Industrial Blue */
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --surface: #ffffff;
+            --bg-body: #f1f5f9;
+            --border: #e2e8f0;
+            --header-height: 60px;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body { margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg-body); color: #0f172a; height: 100vh; overflow: hidden; display: flex; }
+
+        /* --- 2. SIDEBAR NAVIGATION --- */
+        .sidebar {
+            width: 260px; background: var(--sidebar-bg); color: #cbd5e1; display: flex; flex-direction: column;
+            transition: 0.3s; overflow-y: auto; flex-shrink: 0;
+        }
+        .brand {
+            height: var(--header-height); display: flex; align-items: center; padding: 0 20px;
+            font-size: 1.2rem; font-weight: 800; color: white; background: #0f172a; letter-spacing: 1px;
+        }
+        .brand i { color: var(--primary); margin-right: 10px; }
+        
+        .nav-group { padding: 10px 0; border-bottom: 1px solid #334155; }
+        .nav-label { font-size: 0.75rem; text-transform: uppercase; padding: 5px 20px; color: #64748b; font-weight: bold; margin-top: 10px; }
+        
+        .nav-item {
+            padding: 10px 20px; cursor: pointer; display: flex; align-items: center; transition: 0.2s; font-size: 0.9rem;
+        }
+        .nav-item:hover { background: var(--sidebar-hover); color: white; border-left: 4px solid var(--primary); }
+        .nav-item.active { background: var(--primary); color: white; }
+        .nav-item i { width: 25px; text-align: center; margin-right: 10px; }
+
+        /* --- 3. MAIN CONTENT --- */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* Header */
+        .top-header {
+            height: var(--header-height); background: var(--surface); border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; padding: 0 20px;
+        }
+        .sys-status { font-size: 0.85rem; color: var(--success); font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+
+        /* Module Views */
+        .view-container { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+        .view-container.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 4. UI COMPONENTS --- */
+        .card { background: var(--surface); border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .card h3 { margin-top: 0; border-bottom: 2px solid var(--bg-body); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; color: #1e293b; }
+        
+        .btn {
+            padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9rem;
+            display: inline-flex; align-items: center; gap: 5px; transition: 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; } .btn-primary:hover { background: #1d4ed8; }
+        .btn-danger { background: var(--danger); color: white; } .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #334155; }
+        
+        .grid-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-box { padding: 20px; border-radius: 6px; color: white; position: relative; overflow: hidden; }
+        .stat-box h4 { margin: 0 0 10px 0; font-weight: 500; opacity: 0.9; }
+        .stat-box .val { font-size: 1.8rem; font-weight: bold; }
+        
+        /* Forms & Tables */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #475569; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; background: #f8fafc; font-size: 0.95rem; }
+        input:focus { border-color: var(--primary); background: white; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; padding: 12px; background: #f1f5f9; color: #475569; border-bottom: 2px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid var(--border); color: #334155; }
+        tr:hover { background: #f8fafc; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: white; width: 600px; max-width: 90%; max-height: 90vh; overflow-y: auto; border-radius: 8px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .close-modal { float: right; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+
+        /* POS Specific */
+        .pos-grid { display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; height: calc(100vh - 120px); }
+        .product-catalog { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; overflow-y: auto; align-content: start; }
+        .product-tile { background: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px; cursor: pointer; text-align: center; transition: 0.2s; }
+        .product-tile:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .cart-section { background: white; border: 1px solid var(--border); display: flex; flex-direction: column; border-radius: 6px; }
+        .cart-items { flex: 1; overflow-y: auto; padding: 10px; }
+        .cart-footer { padding: 15px; background: #f8fafc; border-top: 1px solid var(--border); }
+
+        /* Toast */
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 16px; position: fixed; z-index: 2000; left: 50%; bottom: 30px; transform: translateX(-50%); }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand"><i class="fa fa-cubes"></i> TITAN ERP</div>
+        
+        <div class="nav-label">Core Modules</div>
+        <div class="nav-item active" onclick="nav('dashboard')"><i class="fa fa-tachometer-alt"></i> Dashboard</div>
+        <div class="nav-item" onclick="nav('accounts')"><i class="fa fa-book"></i> Accounting & Ledger</div>
+        <div class="nav-item" onclick="nav('inventory')"><i class="fa fa-boxes"></i> Inventory & Godown</div>
+        
+        <div class="nav-label">Commercial</div>
+        <div class="nav-item" onclick="nav('pos')"><i class="fa fa-cash-register"></i> Point of Sale (POS)</div>
+        <div class="nav-item" onclick="nav('sales')"><i class="fa fa-file-invoice"></i> Sales & Orders</div>
+        <div class="nav-item" onclick="nav('purchase')"><i class="fa fa-shopping-cart"></i> Purchase & GRN</div>
+        <div class="nav-item" onclick="nav('contacts')"><i class="fa fa-users"></i> Contacts & CRM</div>
+        
+        <div class="nav-label">Advanced</div>
+        <div class="nav-item" onclick="nav('manufacturing')"><i class="fa fa-industry"></i> Manufacturing</div>
+        <div class="nav-item" onclick="nav('hr')"><i class="fa fa-user-tie"></i> HR & Payroll</div>
+        <div class="nav-item" onclick="nav('reports')"><i class="fa fa-chart-pie"></i> Intelligence Reports</div>
+        <div class="nav-item" onclick="nav('settings')"><i class="fa fa-cogs"></i> System Setup</div>
+    </div>
+
+    <div class="main-content">
+        <div class="top-header">
+            <h3>Overview</h3>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="sys-status"><i class="fa fa-wifi"></i> Online</div>
+                <div class="user-profile"><i class="fa fa-user-circle"></i> Admin User</div>
+            </div>
+        </div>
+
+        <div id="view-dashboard" class="view-container active">
+            <div class="grid-dashboard">
+                <div class="stat-box" style="background: linear-gradient(45deg, #2563eb, #1e40af);">
+                    <h4>Total Revenue</h4>
+                    <div class="val" id="d-rev">$0.00</div>
+                    <small>This Month</small>
+                </div>
+                <div class="stat-box" style="background: linear-gradient(45deg, #10b981, #047857);">
+                    <h4>Net Profit</h4>
+                    <div class="val" id="d-profit">$0.00</div>
+                    <small>Real-time Calculation</small>
+                </div>
+                <div class="stat-box" style="background: linear-gradient(45deg, #f59e0b, #b45309);">
+                    <h4>Payables</h4>
+                    <div class="val" id="d-payable">$0.00</div>
+                    <small>Pending to Suppliers</small>
+                </div>
+                <div class="stat-box" style="background: linear-gradient(45deg, #ef4444, #991b1b);">
+                    <h4>Receivables</h4>
+                    <div class="val" id="d-receivable">$0.00</div>
+                    <small>Pending from Customers</small>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="card" style="flex: 2;">
+                    <h3>Recent Transactions</h3>
+                    <table id="dash-table"><thead><tr><th>ID</th><th>Type</th><th>Party</th><th>Amount</th><th>Status</th></tr></thead><tbody></tbody></table>
+                </div>
+                <div class="card" style="flex: 1;">
+                    <h3>Quick Actions</h3>
+                    <button class="btn btn-outline" style="width:100%; margin-bottom:10px;" onclick="nav('pos')"><i class="fa fa-bolt"></i> Quick Sale (POS)</button>
+                    <button class="btn btn-outline" style="width:100%; margin-bottom:10px;" onclick="showModal('modal-expense')"><i class="fa fa-receipt"></i> Record Expense</button>
+                    <button class="btn btn-outline" style="width:100%; margin-bottom:10px;" onclick="showModal('modal-product')"><i class="fa fa-plus"></i> Add Product</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-accounts" class="view-container">
+            <div class="card">
+                <h3>General Ledger & Vouchers
+                    <div>
+                        <button class="btn btn-success" onclick="showModal('modal-voucher', 'Receipt')"><i class="fa fa-arrow-down"></i> Receipt (In)</button>
+                        <button class="btn btn-danger" onclick="showModal('modal-voucher', 'Payment')"><i class="fa fa-arrow-up"></i> Payment (Out)</button>
+                    </div>
+                </h3>
+                <div class="form-group">
+                    <input type="text" placeholder="Search Ledger Entries..." id="search-ledger">
+                </div>
+                <table id="ledger-table">
+                    <thead><tr><th>Date</th><th>Ref #</th><th>Account / Party</th><th>Description</th><th>Debit (In)</th><th>Credit (Out)</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-inventory" class="view-container">
+            <div class="card">
+                <h3>Stock Management
+                    <button class="btn btn-primary" onclick="showModal('modal-product')"><i class="fa fa-plus"></i> Add Item</button>
+                </h3>
+                <div class="form-grid">
+                    <input type="text" id="inv-search" placeholder="Search by Name, Barcode, Serial..." onkeyup="renderInventory()">
+                    <select id="inv-filter-godown" onchange="renderInventory()"><option value="All">All Godowns</option><option value="Main">Main Store</option><option value="Warehouse A">Warehouse A</option></select>
+                </div>
+                <table id="inventory-table">
+                    <thead><tr><th>Barcode</th><th>Item Name</th><th>Category</th><th>Godown</th><th>Cost</th><th>Sale Price</th><th>Stock</th><th>Value</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-pos" class="view-container" style="padding: 10px;">
+            <div class="pos-grid">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="form-grid" style="grid-template-columns: 3fr 1fr; margin-bottom: 0;">
+                        <input type="text" id="pos-search" placeholder="Scan Barcode or Search Item..." onkeyup="renderPOSCatalog()">
+                        <select id="pos-cat" onchange="renderPOSCatalog()"><option value="All">All Cats</option></select>
+                    </div>
+                    <div class="product-catalog" id="pos-catalog">
+                        </div>
+                </div>
+
+                <div class="cart-section">
+                    <div style="padding:15px; background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                        <select id="pos-customer" style="margin-bottom:10px;"><option value="Walk-in">Walk-in Customer</option></select>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-outline" style="flex:1;" onclick="holdBill()"><i class="fa fa-pause"></i> Hold</button>
+                            <button class="btn btn-outline" style="flex:1;" onclick="recallBill()"><i class="fa fa-history"></i> Recall</button>
+                        </div>
+                    </div>
+                    <div class="cart-items" id="pos-cart">
+                        <div style="text-align:center; color:#94a3b8; margin-top:50px;">Cart is Empty</div>
+                    </div>
+                    <div class="cart-footer">
+                        <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:bold; margin-bottom:15px;">
+                            <span>Total</span>
+                            <span id="pos-total">$0.00</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                            <button class="btn btn-success" style="justify-content:center; padding:15px;" onclick="checkout('Cash')">CASH</button>
+                            <button class="btn btn-primary" style="justify-content:center; padding:15px;" onclick="checkout('Card')">CARD</button>
+                            <button class="btn btn-warning" style="grid-column: span 2; justify-content:center;" onclick="checkout('Credit')">CREDIT SALE</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-settings" class="view-container">
+            <div class="card">
+                <h3>System Configuration</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Expense Categories (comma separated)</label>
+                        <input type="text" id="set-exp-cats" value="Rent, Salary, Utilities, Maintenance">
+                        <button class="btn btn-primary" style="margin-top:5px;" onclick="saveSettings()">Update Categories</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Godown Locations</label>
+                        <input type="text" id="set-godowns" value="Main Store, Warehouse A, Showroom">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="view-sales" class="view-container"><div class="card"><h3>Sales History</h3><table id="sales-table"><thead><tr><th>Inv #</th><th>Date</th><th>Customer</th><th>Total</th><th>Paid</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
+        
+        <div id="view-contacts" class="view-container">
+            <div class="card">
+                <h3>Contacts Directory <button class="btn btn-primary" onclick="showModal('modal-contact')">Add New</button></h3>
+                <table id="contacts-table"><thead><tr><th>Name</th><th>Type</th><th>Phone</th><th>City</th><th>Balance</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            </div>
+        </div>
+
+    </div> <div class="modal-overlay" id="modal-product">
+        <div class="modal">
+            <span class="close-modal" onclick="closeModal('modal-product')">&times;</span>
+            <h3>Add New Product</h3>
+            <div class="form-grid">
+                <input type="text" id="p-barcode" placeholder="Scan Barcode / Serial No">
+                <input type="text" id="p-name" placeholder="Item Name">
+                <select id="p-cat"><option>General</option><option>Raw Material</option><option>Finished Goods</option></select>
+                <select id="p-unit"><option>PCS</option><option>KG</option><option>Meters</option></select>
+                <input type="number" id="p-cost" placeholder="Cost Price">
+                <input type="number" id="p-price" placeholder="Sale Price">
+                <select id="p-godown"><option>Main Store</option></select>
+                <input type="number" id="p-stock" placeholder="Opening Stock">
+            </div>
+            <div style="margin-top:20px; text-align:right;">
+                <button class="btn btn-primary" onclick="saveProduct()">Save Item</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-contact">
+        <div class="modal">
+            <span class="close-modal" onclick="closeModal('modal-contact')">&times;</span>
+            <h3>Add Contact (Customer/Supplier/Broker)</h3>
+            <div style="background:#fff3cd; color:#856404; padding:10px; margin-bottom:15px; border-radius:4px; font-size:0.9rem;">
+                <i class="fa fa-lock"></i> Security: You must enter credentials/ID to add a record.
+            </div>
+            <div class="form-grid">
+                <select id="c-type"><option value="Customer">Customer</option><option value="Supplier">Supplier</option><option value="Broker">Broker</option><option value="Employee">Employee</option></select>
+                <input type="text" id="c-name" placeholder="Full Name">
+                <input type="text" id="c-phone" placeholder="Phone / WhatsApp">
+                <input type="text" id="c-cnic" placeholder="CNIC / Tax ID (Credential)">
+                <input type="text" id="c-address" placeholder="Address">
+                <input type="number" id="c-open-bal" placeholder="Opening Balance (Dr/Cr)">
+            </div>
+            <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-voucher">
+        <div class="modal">
+            <span class="close-modal" onclick="closeModal('modal-voucher')">&times;</span>
+            <h3 id="v-title">Cash Voucher</h3>
+            <div class="form-grid">
+                <input type="date" id="v-date">
+                <select id="v-account"><option>Cash Account</option><option>Bank Account (UBL)</option><option>Meezan Bank</option></select>
+                <input type="text" id="v-desc" placeholder="Description / Narration">
+                <select id="v-category" style="display:none;"></select>
+                <input type="number" id="v-amount" placeholder="Amount">
+            </div>
+            <button class="btn btn-success" onclick="saveVoucher()">Post Voucher</button>
+        </div>
+    </div>
+
+    <div id="toast">Action Successful</div>
+
+    <script type="module">
+        // 1. FIREBASE SETUP
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, onSnapshot, query, where, orderBy } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- PASTE YOUR FIREBASE CONFIG HERE ---
+        // If empty, app runs in local TEST MODE (Data lost on refresh)
+        const firebaseConfig = {
+            // apiKey: "...",
+            // authDomain: "...",
+            // projectId: "...",
+        };
+
+        let db = null;
+        let isOnline = false;
+
+        // Initialize DB
+        try {
+            if (firebaseConfig.projectId) {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                isOnline = true;
+                console.log("Connected to Cloud DB");
+            } else {
+                console.warn("Running in OFFLINE TEST MODE (No persistence)");
+            }
+        } catch (e) { console.error("Firebase Error", e); }
+
+        // 2. STATE MANAGEMENT
+        const state = {
+            products: [],
+            contacts: [],
+            sales: [],
+            ledger: [],
+            settings: {
+                expenseCats: ["Rent", "Salary", "Tea/Lunch", "Utilities"],
+                godowns: ["Main Store"]
+            },
+            cart: []
+        };
+
+        // 3. GLOBAL FUNCTIONS (Expose to window)
+        window.nav = (view) => {
+            document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            const target = document.getElementById('view-' + view);
+            if(target) target.classList.add('active');
+            
+            // Highlight nav item
+            event.currentTarget.classList.add('active');
+            document.querySelector('.top-header h3').innerText = view.toUpperCase();
+        };
+
+        window.showModal = (id, type) => {
+            document.getElementById(id).style.display = 'flex';
+            if(id === 'modal-voucher') {
+                document.getElementById('v-title').innerText = type + " Voucher";
+                document.getElementById('v-title').dataset.type = type;
+                
+                // Show Categories if it's an Expense/Payment
+                const catSelect = document.getElementById('v-category');
+                if(type === 'Payment') {
+                    catSelect.style.display = 'block';
+                    catSelect.innerHTML = state.settings.expenseCats.map(c => `<option>${c}</option>`).join('');
+                } else {
+                    catSelect.style.display = 'none';
+                }
+            }
+        };
+
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+
+        window.showToast = (msg) => {
+            const x = document.getElementById("toast");
+            x.innerText = msg;
+            x.className = "show";
+            setTimeout(() => x.className = x.className.replace("show", ""), 3000);
+        };
+
+        // 4. DATA OPERATIONS (Abstracted for Local vs Cloud)
+        async function saveData(collectionName, data) {
+            if(isOnline) {
+                await addDoc(collection(db, collectionName), { ...data, timestamp: new Date() });
+            } else {
+                state[collectionName] = state[collectionName] || [];
+                state[collectionName].push({ ...data, id: Date.now().toString() });
+                refreshUI(); // Manual refresh for local mode
+            }
+            showToast("Saved Successfully");
+        }
+
+        async function deleteData(collectionName, id) {
+            if(isOnline) {
+                await deleteDoc(doc(db, collectionName, id));
+            } else {
+                state[collectionName] = state[collectionName].filter(x => x.id !== id);
+                refreshUI();
+            }
+            showToast("Deleted");
+        }
+
+        // 5. BUSINESS LOGIC
+        
+        // --- Inventory ---
+        window.saveProduct = () => {
+            const p = {
+                barcode: document.getElementById('p-barcode').value,
+                name: document.getElementById('p-name').value,
+                category: document.getElementById('p-cat').value,
+                cost: parseFloat(document.getElementById('p-cost').value) || 0,
+                price: parseFloat(document.getElementById('p-price').value) || 0,
+                stock: parseInt(document.getElementById('p-stock').value) || 0,
+                godown: document.getElementById('p-godown').value
+            };
+            if(!p.name || !p.barcode) return alert("Name & Barcode Required");
+            
+            saveData('products', p);
+            closeModal('modal-product');
+        };
+
+        window.renderInventory = () => {
+            const tbody = document.querySelector('#inventory-table tbody');
+            const search = document.getElementById('inv-search').value.toLowerCase();
+            const godownFilter = document.getElementById('inv-filter-godown').value;
+            
+            tbody.innerHTML = '';
+            state.products.forEach(p => {
+                if(godownFilter !== 'All' && p.godown !== godownFilter) return;
+                if(!p.name.toLowerCase().includes(search) && !p.barcode.includes(search)) return;
+
+                const row = `<tr>
+                    <td>${p.barcode}</td>
+                    <td>${p.name}</td>
+                    <td><span style="font-size:0.8rem; background:#e2e8f0; padding:2px 6px; border-radius:4px;">${p.category}</span></td>
+                    <td>${p.godown}</td>
+                    <td>${p.cost}</td>
+                    <td>${p.price}</td>
+                    <td style="font-weight:bold; color:${p.stock < 5 ? 'red' : 'green'}">${p.stock}</td>
+                    <td>${(p.stock * p.cost).toFixed(2)}</td>
+                    <td><button class="btn btn-danger" onclick="deleteItem('products', '${p.id}')"><i class="fa fa-trash"></i></button></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        };
+
+        // --- POS Logic ---
+        window.renderPOSCatalog = () => {
+            const container = document.getElementById('pos-catalog');
+            const search = document.getElementById('pos-search').value.toLowerCase();
+            container.innerHTML = '';
+            
+            state.products.forEach(p => {
+                if(!p.name.toLowerCase().includes(search) && !p.barcode.includes(search)) return;
+                
+                const div = document.createElement('div');
+                div.className = 'product-tile';
+                div.innerHTML = `<div><b>${p.name}</b></div><div style="color:blue;">$${p.price}</div><small>Stock: ${p.stock}</small>`;
+                div.onclick = () => addToCart(p);
+                container.appendChild(div);
+            });
+        };
+
+        function addToCart(product) {
+            const existing = state.cart.find(x => x.barcode === product.barcode);
+            if(existing) {
+                existing.qty++;
+            } else {
+                state.cart.push({ ...product, qty: 1 });
+            }
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('pos-cart');
+            container.innerHTML = '';
+            let total = 0;
+            
+            state.cart.forEach((item, index) => {
+                total += item.price * item.qty;
+                container.innerHTML += `
+                <div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
+                    <div>${item.name} <br> <small>${item.qty} x ${item.price}</small></div>
+                    <div>$${(item.qty*item.price).toFixed(2)} <i class="fa fa-times" style="color:red; cursor:pointer;" onclick="remCart(${index})"></i></div>
+                </div>`;
+            });
+            document.getElementById('pos-total').innerText = '$' + total.toFixed(2);
+            if(state.cart.length === 0) container.innerHTML = '<div style="text-align:center; color:#94a3b8; margin-top:50px;">Cart is Empty</div>';
+        }
+
+        window.remCart = (idx) => {
+            state.cart.splice(idx, 1);
+            renderCart();
+        };
+
+        window.checkout = (method) => {
+            if(state.cart.length === 0) return alert("Cart Empty");
+            const customerName = document.getElementById('pos-customer').value;
+            
+            const total = state.cart.reduce((sum, i) => sum + (i.price*i.qty), 0);
+            
+            // 1. Save Sale
+            saveData('sales', {
+                items: state.cart,
+                total: total,
+                method: method,
+                customer: customerName,
+                date: new Date().toLocaleDateString()
+            });
+
+            // 2. Ledger Entry (Double Entry Automation)
+            // Debit Cash/Receivable, Credit Sales
+            saveData('ledger', { date: new Date().toLocaleDateString(), desc: `Sale #${Date.now()}`, type: 'Credit', amount: total, account: 'Sales Account' });
+            
+            if(method === 'Cash') {
+                saveData('ledger', { date: new Date().toLocaleDateString(), desc: `Cash from Sale`, type: 'Debit', amount: total, account: 'Cash In Hand' });
+            } else if (method === 'Credit') {
+                 saveData('ledger', { date: new Date().toLocaleDateString(), desc: `Receivable from ${customerName}`, type: 'Debit', amount: total, account: 'Accounts Receivable' });
+            }
+
+            state.cart = [];
+            renderCart();
+            showToast("Transaction Completed");
+        };
+
+        // --- Contacts ---
+        window.saveContact = () => {
+            const c = {
+                type: document.getElementById('c-type').value,
+                name: document.getElementById('c-name').value,
+                phone: document.getElementById('c-phone').value,
+                cnic: document.getElementById('c-cnic').value,
+                balance: parseFloat(document.getElementById('c-open-bal').value) || 0
+            };
+            if(!c.name || !c.cnic) return alert("Name & Credential Required");
+            saveData('contacts', c);
+            closeModal('modal-contact');
+        };
+
+        // --- Initialization & Live Listeners ---
+        function refreshUI() {
+            renderInventory();
+            renderPOSCatalog();
+            
+            // Update Dashboard Stats
+            const totalRev = state.sales.reduce((a,b) => a + b.total, 0);
+            document.getElementById('d-rev').innerText = '$' + totalRev.toFixed(2);
+            
+            // Render Contacts
+            const cTable = document.querySelector('#contacts-table tbody');
+            cTable.innerHTML = '';
+            state.contacts.forEach(c => {
+                cTable.innerHTML += `<tr><td>${c.name}</td><td>${c.type}</td><td>${c.phone}</td><td>-</td><td>${c.balance}</td>
+                <td><button class="btn btn-outline" onclick="deleteData('contacts', '${c.id}')"><i class="fa fa-trash"></i></button></td></tr>`;
+            });
+
+            // Populate Dropdowns
+            const custSelect = document.getElementById('pos-customer');
+            state.contacts.filter(x => x.type === 'Customer').forEach(c => {
+                 // Check duplicates simple check
+                 if(!custSelect.innerHTML.includes(c.name))
+                    custSelect.innerHTML += `<option>${c.name}</option>`;
+            });
+        }
+
+        // If online, listen to Firestore
+        if(isOnline) {
+            ['products', 'contacts', 'sales', 'ledger'].forEach(col => {
+                onSnapshot(collection(db, col), (snap) => {
+                    state[col] = [];
+                    snap.forEach(doc => state[col].push({ ...doc.data(), id: doc.id }));
+                    refreshUI();
+                });
+            });
+        } else {
+            // Initial dummy data for testing
+            state.products = [
+                { id: '1', barcode: '1001', name: 'Cement Bag', category: 'Raw Material', cost: 500, price: 650, stock: 100, godown: 'Main Store' },
+                { id: '2', barcode: '1002', name: 'Steel Rod 10mm', category: 'Raw Material', cost: 1200, price: 1500, stock: 50, godown: 'Warehouse A' }
+            ];
+            refreshUI();
+        }
+
+        // Global Delete helper
+        window.deleteItem = (col, id) => deleteData(col, id);
+
+    </script>
+</body>
+</html>
